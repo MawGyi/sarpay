@@ -88,8 +88,11 @@ export function BookCard({ book, index, onClick, onDelete, onEdit }: BookCardPro
             </div>
           )}
 
-          {/* Action Buttons (Visible on Hover) - Vertical layout */}
-          <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+          {/* Action Buttons (Visible on Hover, Always visible on touch devices) - Vertical layout */}
+          <div
+            className="absolute top-2 right-2 flex flex-col gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 z-10"
+            data-touch-visible
+          >
             {/* Edit Button - MD files only */}
             {onEdit && book.formatType === 'md' && (
               <button

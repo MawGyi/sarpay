@@ -68,10 +68,10 @@ const themeStyles: Record<ThemeMode, { bg: string; text: string; accent: string;
   },
 };
 
-export default function MdReader({ 
-  content, 
-  bookId, 
-  title, 
+export default function MdReader({
+  content,
+  bookId,
+  title,
   onClose,
   currentChapter,
   totalChapters,
@@ -89,7 +89,7 @@ export default function MdReader({
 
   const { progress: savedProgress, updateProgress } = useReadingProgress(bookId);
   const { preferences, updatePreference } = useReaderPreferences();
-  
+
   // Immersive mode hook for auto-hiding UI
   const {
     isUIVisible,
@@ -138,10 +138,10 @@ export default function MdReader({
 
     const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
     const percentage = Math.round((scrollTop / (scrollHeight - clientHeight)) * 100);
-    
+
     setProgress(Math.min(100, Math.max(0, percentage)));
     setShowBackToTop(scrollTop > 500);
-    
+
     // Trigger immersive mode scroll handling
     immersiveHandleScroll();
 
@@ -151,12 +151,12 @@ export default function MdReader({
       percentage: Math.min(100, Math.max(0, percentage)),
     });
   }, [updateProgress, immersiveHandleScroll]);
-  
+
   // Show controls on mouse move
   const handleMouseMove = useCallback(() => {
     immersiveHandleMouseMove();
   }, [immersiveHandleMouseMove]);
-  
+
   // Handle content area click for immersive toggle
   const handleContentClick = useCallback((e: React.MouseEvent) => {
     // Only toggle if clicking directly on content area, not on buttons or links
@@ -178,34 +178,33 @@ export default function MdReader({
   }, []);
 
   const currentTheme = themeStyles[preferences.theme] || themeStyles.original;
-  
+
   // Adjust line height specifically for Burmese scripts - enforce 2.0 minimum
   const lineHeight = (preferences.fontFamily === 'pyidaungsu' || preferences.fontFamily === 'noto-sans-myanmar')
-      ? 2.0
-      : preferences.lineHeight;
+    ? 2.0
+    : preferences.lineHeight;
 
   return (
-    <div 
+    <div
       className={`fixed inset-0 z-50 flex flex-col theme-transition ${currentTheme.bg} ${currentTheme.text}`}
       onMouseMove={handleMouseMove}
     >
       {/* Top Progress Bar - thin elegant indicator */}
       <div className="fixed top-0 left-0 right-0 h-[2px] bg-current/10 z-[60]">
         <motion.div
-          className={`h-full ${
-            preferences.theme === 'focus' ? 'bg-blue-400' :
-            preferences.theme === 'paper' ? 'bg-amber-600' : 'bg-blue-600'
-          }`}
+          className={`h-full ${preferences.theme === 'focus' ? 'bg-blue-400' :
+              preferences.theme === 'paper' ? 'bg-amber-600' : 'bg-blue-600'
+            }`}
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.2 }}
         />
       </div>
-      
+
       {/* Header - Auto-hide with slide-in from top */}
       <AnimatePresence>
         {isUIVisible && (
-          <motion.header 
+          <motion.header
             initial={{ opacity: 0, y: '-100%' }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '-100%' }}
@@ -270,7 +269,7 @@ export default function MdReader({
             exit={{ opacity: 0, x: -40 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className={`
-              mx-auto px-6 md:px-12 py-12 max-w-3xl
+              mx-auto px-4 sm:px-6 md:px-12 py-8 sm:py-12 max-w-3xl
               prose ${currentTheme.prose} prose-lg
               prose-headings:font-serif
               prose-p:leading-relaxed
@@ -283,143 +282,143 @@ export default function MdReader({
               fontWeight: getFontWeight(),
             }}
           >
-          {useMemo(() => (
-            <ReactMarkdown
-              components={{
-                // Custom heading styles with Burmese font-weight 500
-                h1: ({ children }) => (
-                  <h1 
-                    className="text-3xl font-serif mt-12 mb-6 first:mt-0"
-                    style={{ fontWeight: 500 }}
-                  >
-                    {children}
-                  </h1>
-                ),
-                h2: ({ children }) => (
-                  <h2 
-                    className="text-2xl font-serif mt-10 mb-4"
-                    style={{ fontWeight: 500 }}
-                  >
-                    {children}
-                  </h2>
-                ),
-                h3: ({ children }) => (
-                  <h3 
-                    className="text-xl font-serif mt-8 mb-3"
-                    style={{ fontWeight: 500 }}
-                  >
-                    {children}
-                  </h3>
-                ),
-                // Paragraph with comfortable spacing
-                p: ({ children }) => (
-                  <p className="mb-6 text-justify hyphens-auto">
-                    {children}
-                  </p>
-                ),
-                // Blockquote styling
-                blockquote: ({ children }) => (
-                  <blockquote className="border-l-4 pl-6 italic my-6 opacity-90">
-                    {children}
-                  </blockquote>
-                ),
-                // Code block styling
-                code: ({ className, children }) => {
-                  const isInline = !className;
-                  return isInline ? (
-                    <code className="px-1.5 py-0.5 rounded bg-current/10 text-sm font-mono">
+            {useMemo(() => (
+              <ReactMarkdown
+                components={{
+                  // Custom heading styles with Burmese font-weight 500
+                  h1: ({ children }) => (
+                    <h1
+                      className="text-3xl font-serif mt-12 mb-6 first:mt-0"
+                      style={{ fontWeight: 500 }}
+                    >
                       {children}
-                    </code>
+                    </h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2
+                      className="text-2xl font-serif mt-10 mb-4"
+                      style={{ fontWeight: 500 }}
+                    >
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3
+                      className="text-xl font-serif mt-8 mb-3"
+                      style={{ fontWeight: 500 }}
+                    >
+                      {children}
+                    </h3>
+                  ),
+                  // Paragraph with comfortable spacing
+                  p: ({ children }) => (
+                    <p className="mb-6 text-justify hyphens-auto">
+                      {children}
+                    </p>
+                  ),
+                  // Blockquote styling
+                  blockquote: ({ children }) => (
+                    <blockquote className="border-l-4 pl-6 italic my-6 opacity-90">
+                      {children}
+                    </blockquote>
+                  ),
+                  // Code block styling
+                  code: ({ className, children }) => {
+                    const isInline = !className;
+                    return isInline ? (
+                      <code className="px-1.5 py-0.5 rounded bg-current/10 text-sm font-mono">
+                        {children}
+                      </code>
+                    ) : (
+                      <code className={className}>{children}</code>
+                    );
+                  },
+                  // Link styling
+                  a: ({ href, children }) => (
+                    <a
+                      href={href}
+                      className={`${currentTheme.accent} underline underline-offset-2 hover:opacity-80 transition-opacity`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {children}
+                    </a>
+                  ),
+                  // Image styling
+                  img: ({ src, alt }) => (
+                    <figure className="my-8">
+                      <img
+                        src={src}
+                        alt={alt || ''}
+                        className="rounded-lg mx-auto max-w-full"
+                      />
+                      {alt && (
+                        <figcaption className="text-center text-sm opacity-70 mt-2">
+                          {alt}
+                        </figcaption>
+                      )}
+                    </figure>
+                  ),
+                  // Horizontal rule
+                  hr: () => (
+                    <hr className="my-12 border-current/20" />
+                  ),
+                }}
+              >
+                {content}
+              </ReactMarkdown>
+            ), [content, currentTheme.accent, currentTheme.prose])}
+
+            {/* Chapter Navigation */}
+            {(onNextChapter || onPreviousChapter) && totalChapters && totalChapters > 1 && (
+              <div className="mt-16 pt-8 border-t border-current/20">
+                <div className="flex items-center justify-between gap-4">
+                  {onPreviousChapter && currentChapter && currentChapter > 1 ? (
+                    <button
+                      onClick={onPreviousChapter}
+                      className="flex flex-col items-start gap-1 px-6 py-4 rounded-xl bg-current/10 hover:bg-current/20 transition-all hover:scale-105 group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                        <span className="font-medium">Previous Law</span>
+                      </div>
+                      {chapters && chapters[currentChapter - 2] && (
+                        <span className="text-xs opacity-60 ml-7" style={{ fontFamily: "'Pyidaungsu', 'Padauk', serif" }}>
+                          {chapters[currentChapter - 2].title.substring(0, 30)}...
+                        </span>
+                      )}
+                    </button>
                   ) : (
-                    <code className={className}>{children}</code>
-                  );
-                },
-                // Link styling
-                a: ({ href, children }) => (
-                  <a
-                    href={href}
-                    className={`${currentTheme.accent} underline underline-offset-2 hover:opacity-80 transition-opacity`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {children}
-                  </a>
-                ),
-                // Image styling
-                img: ({ src, alt }) => (
-                  <figure className="my-8">
-                    <img
-                      src={src}
-                      alt={alt || ''}
-                      className="rounded-lg mx-auto max-w-full"
-                    />
-                    {alt && (
-                      <figcaption className="text-center text-sm opacity-70 mt-2">
-                        {alt}
-                      </figcaption>
-                    )}
-                  </figure>
-                ),
-                // Horizontal rule
-                hr: () => (
-                  <hr className="my-12 border-current/20" />
-                ),
-              }}
-            >
-              {content}
-            </ReactMarkdown>
-          ), [content, currentTheme.accent, currentTheme.prose])}
+                    <div />
+                  )}
 
-          {/* Chapter Navigation */}
-          {(onNextChapter || onPreviousChapter) && totalChapters && totalChapters > 1 && (
-            <div className="mt-16 pt-8 border-t border-current/20">
-              <div className="flex items-center justify-between gap-4">
-                {onPreviousChapter && currentChapter && currentChapter > 1 ? (
-                  <button
-                    onClick={onPreviousChapter}
-                    className="flex flex-col items-start gap-1 px-6 py-4 rounded-xl bg-current/10 hover:bg-current/20 transition-all hover:scale-105 group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                      <span className="font-medium">Previous Law</span>
-                    </div>
-                    {chapters && chapters[currentChapter - 2] && (
-                      <span className="text-xs opacity-60 ml-7" style={{ fontFamily: "'Pyidaungsu', 'Padauk', serif" }}>
-                        {chapters[currentChapter - 2].title.substring(0, 30)}...
-                      </span>
-                    )}
-                  </button>
-                ) : (
-                  <div /> 
-                )}
+                  {currentChapter && totalChapters && (
+                    <span className="text-sm opacity-60 font-medium">
+                      Law {currentChapter} of {totalChapters}
+                    </span>
+                  )}
 
-                {currentChapter && totalChapters && (
-                  <span className="text-sm opacity-60 font-medium">
-                    Law {currentChapter} of {totalChapters}
-                  </span>
-                )}
-
-                {onNextChapter && currentChapter && currentChapter < totalChapters ? (
-                  <button
-                    onClick={onNextChapter}
-                    className="flex flex-col items-end gap-1 px-6 py-4 rounded-xl bg-current/10 hover:bg-current/20 transition-all hover:scale-105 group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Next Law</span>
-                      <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                    {chapters && chapters[currentChapter] && (
-                      <span className="text-xs opacity-60 mr-7" style={{ fontFamily: "'Pyidaungsu', 'Padauk', serif" }}>
-                        {chapters[currentChapter].title.substring(0, 30)}...
-                      </span>
-                    )}
-                  </button>
-                ) : (
-                  <div />
-                )}
+                  {onNextChapter && currentChapter && currentChapter < totalChapters ? (
+                    <button
+                      onClick={onNextChapter}
+                      className="flex flex-col items-end gap-1 px-6 py-4 rounded-xl bg-current/10 hover:bg-current/20 transition-all hover:scale-105 group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Next Law</span>
+                        <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                      {chapters && chapters[currentChapter] && (
+                        <span className="text-xs opacity-60 mr-7" style={{ fontFamily: "'Pyidaungsu', 'Padauk', serif" }}>
+                          {chapters[currentChapter].title.substring(0, 30)}...
+                        </span>
+                      )}
+                    </button>
+                  ) : (
+                    <div />
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
           </motion.article>
         </AnimatePresence>
       </div>
@@ -427,7 +426,7 @@ export default function MdReader({
       {/* Progress bar - Auto-hide with slide-in from bottom */}
       <AnimatePresence>
         {isUIVisible && (
-          <motion.footer 
+          <motion.footer
             initial={{ opacity: 0, y: '100%' }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '100%' }}
@@ -438,10 +437,9 @@ export default function MdReader({
               <span className="text-sm opacity-70">{progress}%</span>
               <div className="flex-1 h-1 bg-current/20 rounded-full overflow-hidden">
                 <motion.div
-                  className={`h-full rounded-full ${
-                    preferences.theme === 'focus' ? 'bg-blue-400' :
-                    preferences.theme === 'paper' ? 'bg-amber-600' : 'bg-blue-600'
-                  }`}
+                  className={`h-full rounded-full ${preferences.theme === 'focus' ? 'bg-blue-400' :
+                      preferences.theme === 'paper' ? 'bg-amber-600' : 'bg-blue-600'
+                    }`}
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.3 }}
@@ -469,8 +467,8 @@ export default function MdReader({
       </AnimatePresence>
 
       {/* Reader Settings */}
-      <ReaderSettings 
-        isOpen={showSettings} 
+      <ReaderSettings
+        isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         isFullscreen={isFullscreen}
         onToggleFullscreen={toggleFullscreen}

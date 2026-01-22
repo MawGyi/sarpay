@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Grid3x3, List, RefreshCw, AlertCircle, Plus } from 'lucide-react';
+import { Search, Grid3x3, List, RefreshCw, AlertCircle, Plus, Menu } from 'lucide-react';
 import { Sidebar, LibraryGrid, DeleteBookModal, EditMdBookModal } from '@/components/library';
 import { FilterCategory } from '@/components/library/Sidebar';
 import { UploadModal } from '@/components/upload/UploadModal';
@@ -22,6 +22,7 @@ export default function Home() {
   const [bookToEdit, setBookToEdit] = useState<Book | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('all');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Fetch books from Supabase
   const loadBooks = useCallback(async () => {
@@ -210,15 +211,31 @@ export default function Home() {
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
         bookCounts={bookCounts}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
-      {/* Main Content Area */}
-      <div className="ml-64 min-h-screen">
-        {/* Top Navigation Bar */}
+      {/* Main Content Area - responsive margin */}
+      <div className="ml-0 sm:ml-64 min-h-screen">
+        {/* Mobile Header - visible only on small screens */}
+        <div className="sm:hidden sticky top-0 z-30 glass">
+          <div className="px-4 py-3 flex items-center gap-4">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 -ml-2 text-foreground hover:bg-white/10 rounded-lg transition-colors"
+              aria-label="Open menu"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <h1 className="font-semibold text-lg">{getFilterLabel(activeFilter)}</h1>
+          </div>
+        </div>
+
+        {/* Top Navigation Bar - hidden on mobile, visible on desktop */}
         <motion.header
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="sticky top-0 z-40 glass"
+          className="hidden sm:block sticky top-0 z-40 glass"
         >
           <div className="px-8 py-4 flex items-center justify-between gap-4">
             {/* Search Bar */}
@@ -275,15 +292,15 @@ export default function Home() {
         </motion.header>
 
         {/* Library Content */}
-        <main className="px-8 py-8">
+        <main className="px-4 sm:px-8 py-6 sm:py-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            {/* Section Header */}
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2">{getFilterLabel(activeFilter)}</h2>
+            {/* Section Header - hidden on mobile since we show it in mobile header */}
+            <div className="mb-6 sm:mb-8 hidden sm:block">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-2">{getFilterLabel(activeFilter)}</h2>
               <p className="text-muted">
                 {isLoading
                   ? 'Loading...'
@@ -312,7 +329,7 @@ export default function Home() {
 
             {/* Loading Skeleton - Premium Book Shape with Shimmer */}
             {isLoading && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
                 {[...Array(12)].map((_, i) => (
                   <div key={i} className="animate-pulse">
                     {/* Book Cover Skeleton with Shimmer */}

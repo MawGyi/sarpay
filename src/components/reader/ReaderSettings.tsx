@@ -27,8 +27,8 @@ const fontWeightOptions: Array<{ weight: FontWeight; label: string; value: strin
   { weight: 'bold', label: 'Bold', value: '700' },
 ];
 
-export default function ReaderSettings({ 
-  isOpen, 
+export default function ReaderSettings({
+  isOpen,
   onClose,
   isFullscreen,
   onToggleFullscreen,
@@ -69,24 +69,24 @@ export default function ReaderSettings({
             className="fixed inset-0 bg-transparent z-40"
           />
 
-          {/* Settings Panel - Apple Books Style Popover */}
+          {/* Settings Panel - Bottom sheet on mobile, popover on desktop */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 10 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed top-16 right-4 z-50 w-80 rounded-2xl shadow-2xl glass overflow-hidden border border-white/10"
+            className="fixed z-50 inset-x-3 bottom-3 sm:inset-auto sm:top-16 sm:right-4 sm:w-80 rounded-2xl shadow-2xl glass overflow-hidden border border-white/10 max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
-            style={{ 
-              backgroundColor: preferences.theme === 'focus' ? 'rgba(30, 30, 30, 0.95)' : 
-                               preferences.theme === 'quiet' ? 'rgba(240, 240, 240, 0.95)' :
-                               preferences.theme === 'paper' ? 'rgba(244, 236, 216, 0.95)' :
-                               'rgba(255, 255, 255, 0.95)',
+            style={{
+              backgroundColor: preferences.theme === 'focus' ? 'rgba(30, 30, 30, 0.95)' :
+                preferences.theme === 'quiet' ? 'rgba(240, 240, 240, 0.95)' :
+                  preferences.theme === 'paper' ? 'rgba(244, 236, 216, 0.95)' :
+                    'rgba(255, 255, 255, 0.95)',
               color: preferences.theme === 'focus' ? 'white' : 'black'
             }}
           >
             <div className="p-4 space-y-5">
-              
+
               {/* Themes Row */}
               <div className="flex justify-between items-center gap-2 p-1 bg-black/5 dark:bg-white/10 rounded-xl">
                 {themeOptions.map((theme) => (
@@ -97,7 +97,7 @@ export default function ReaderSettings({
                       flex-1 h-10 rounded-lg transition-colors duration-500 flex items-center justify-center
                       ${preferences.theme === theme.mode ? 'shadow-sm ring-1 ring-black/5' : 'hover:bg-black/5 dark:hover:bg-white/5'}
                     `}
-                    style={{ 
+                    style={{
                       backgroundColor: theme.bg,
                       color: theme.text,
                       border: preferences.theme === theme.mode ? '2px solid #007aff' : '1px solid transparent'
@@ -111,24 +111,24 @@ export default function ReaderSettings({
 
               {/* Font Size & Brightness */}
               <div className="space-y-4">
-                 {/* Size Control */}
-                 <div className="flex items-center justify-between bg-black/5 dark:bg-white/10 rounded-xl p-1">
-                    <button
-                      onClick={() => handleFontSizeChange(-2)}
-                      disabled={preferences.fontSize <= 14}
-                      className="flex-1 py-2 flex items-center justify-center text-sm font-medium opacity-70 hover:opacity-100 disabled:opacity-30"
-                    >
-                      <span className="text-xs font-bold">A</span>
-                    </button>
-                    <div className="w-[1px] h-4 bg-black/10 dark:bg-white/10"></div>
-                    <button
-                      onClick={() => handleFontSizeChange(2)}
-                      disabled={preferences.fontSize >= 48}
-                      className="flex-1 py-2 flex items-center justify-center text-xl font-medium opacity-70 hover:opacity-100 disabled:opacity-30"
-                    >
-                      <span className="text-lg font-bold">A</span>
-                    </button>
-                 </div>
+                {/* Size Control */}
+                <div className="flex items-center justify-between bg-black/5 dark:bg-white/10 rounded-xl p-1">
+                  <button
+                    onClick={() => handleFontSizeChange(-2)}
+                    disabled={preferences.fontSize <= 14}
+                    className="flex-1 py-2 flex items-center justify-center text-sm font-medium opacity-70 hover:opacity-100 disabled:opacity-30"
+                  >
+                    <span className="text-xs font-bold">A</span>
+                  </button>
+                  <div className="w-[1px] h-4 bg-black/10 dark:bg-white/10"></div>
+                  <button
+                    onClick={() => handleFontSizeChange(2)}
+                    disabled={preferences.fontSize >= 48}
+                    className="flex-1 py-2 flex items-center justify-center text-xl font-medium opacity-70 hover:opacity-100 disabled:opacity-30"
+                  >
+                    <span className="text-lg font-bold">A</span>
+                  </button>
+                </div>
               </div>
 
               {/* Font Selection */}
@@ -146,8 +146,8 @@ export default function ReaderSettings({
                       onClick={() => handleFontFamilyChange(font.id as FontFamily)}
                       className={`
                         w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between
-                        ${preferences.fontFamily === font.id 
-                          ? 'bg-black/5 dark:bg-white/10 font-bold' 
+                        ${preferences.fontFamily === font.id
+                          ? 'bg-black/5 dark:bg-white/10 font-bold'
                           : 'hover:bg-black/5 dark:hover:bg-white/5'}
                       `}
                     >

@@ -150,18 +150,36 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
     });
   }, [preferences, getFontFamily, getFontWeight]);
 
-  // Initialize EPUB
+  // Store initial saved location to avoid re-initialization on every progress update
+  const initialLocationRef = useRef<string | null>(null);
+
+  // Set initial location only once
+  useEffect(() => {
+    if (savedProgress?.location && initialLocationRef.current === null) {
+      initialLocationRef.current = savedProgress.location;
+    }
+  }, [savedProgress?.location]);
+
+  // Initialize EPUB - only run once when URL changes
   useEffect(() => {
     if (!viewerRef.current) return;
 
     const book = ePub(url);
     bookRef.current = book;
 
-    // Detect screen size for spread
+    // Detect screen size for spread and set appropriate width
+    const isMobile = window.innerWidth < 640;
     const isLargeScreen = window.innerWidth >= 1024;
 
+    // Calculate content width based on screen size
+    // Mobile: full width minus nav buttons space
+    // Tablet/Desktop: more generous width
+    const contentWidth = isMobile
+      ? window.innerWidth - 80 // Leave space for nav buttons
+      : '100%';
+
     const rendition = book.renderTo(viewerRef.current, {
-      width: '100%',
+      width: contentWidth,
       height: '100%',
       spread: isLargeScreen ? 'auto' : 'none',
       flow: 'paginated',
@@ -169,13 +187,11 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
 
     renditionRef.current = rendition;
 
-    // Apply theme and styles
-    applyTheme(rendition, preferences.theme);
-    applyCustomStyles(rendition);
-
     // Load saved progress or start from beginning
-    if (savedProgress?.location) {
-      rendition.display(savedProgress.location);
+    // Use the ref to get the initial location to avoid dependency on savedProgress
+    const locationToLoad = initialLocationRef.current || savedProgress?.location;
+    if (locationToLoad) {
+      rendition.display(locationToLoad);
     } else {
       rendition.display();
     }
@@ -224,13 +240,37 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
       }
     };
 
+    // Handle window resize for responsive layout
+    const handleResize = () => {
+      if (renditionRef.current && viewerRef.current) {
+        const newIsMobile = window.innerWidth < 640;
+        const newWidth = newIsMobile
+          ? window.innerWidth - 80
+          : viewerRef.current.clientWidth;
+
+        renditionRef.current.resize(newWidth, viewerRef.current.clientHeight);
+      }
+    };
+
+    // Debounce resize handler
+    let resizeTimeout: NodeJS.Timeout;
+    const debouncedResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(handleResize, 150);
+    };
+
     document.addEventListener('keydown', handleKeydown);
+    window.addEventListener('resize', debouncedResize);
 
     return () => {
       document.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener('resize', debouncedResize);
+      clearTimeout(resizeTimeout);
       book.destroy();
     };
-  }, [url, savedProgress?.location, updateProgress, applyTheme, applyCustomStyles, preferences.theme]);
+    // Only re-initialize when URL changes - preferences are handled by separate useEffect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url]);
 
   // Apply custom styles whenever preferences change
   useEffect(() => {
@@ -305,7 +345,7 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -300, opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="absolute left-0 top-0 bottom-0 w-72 border-r border-current/10 overflow-y-auto z-10"
+              className="absolute left-0 top-0 bottom-0 w-full sm:w-72 border-r border-current/10 overflow-y-auto z-20"
               style={{ backgroundColor: currentTheme.bg }}
             >
               <div className="p-4">
@@ -333,29 +373,35 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
         </AnimatePresence>
 
         {/* Reader area */}
-        <div className="flex-1 flex items-center justify-center relative">
-          {/* Previous button */}
+        <div className="flex-1 flex items-center justify-center relative overflow-hidden">
+          {/* Previous button - fixed position on mobile for visibility */}
           <button
             onClick={goPrev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-current/10 transition-colors z-10"
+            className="absolute left-0 sm:left-2 md:left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full hover:bg-current/10 active:bg-current/20 transition-colors z-20 bg-current/5 backdrop-blur-sm"
             aria-label="Previous page"
+            style={{ minWidth: '36px', minHeight: '36px' }}
           >
-            <ChevronLeft size={24} />
+            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
 
-          {/* EPUB viewer */}
+          {/* EPUB viewer - responsive with proper padding for nav buttons */}
           <div
             ref={viewerRef}
-            className="w-full h-full max-w-5xl mx-auto px-4 sm:px-12 lg:px-24"
+            className="w-full h-full max-w-5xl mx-auto px-10 sm:px-14 md:px-16 lg:px-24 overflow-hidden"
+            style={{
+              // Ensure content doesn't overflow on mobile
+              maxWidth: '100vw',
+            }}
           />
 
-          {/* Next button */}
+          {/* Next button - fixed position on mobile for visibility */}
           <button
             onClick={goNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full hover:bg-current/10 transition-colors z-10"
+            className="absolute right-0 sm:right-2 md:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full hover:bg-current/10 active:bg-current/20 transition-colors z-20 bg-current/5 backdrop-blur-sm"
             aria-label="Next page"
+            style={{ minWidth: '36px', minHeight: '36px' }}
           >
-            <ChevronRight size={24} />
+            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
       </div>

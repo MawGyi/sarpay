@@ -129,15 +129,15 @@ export default function BookDetailsPage() {
         </button>
       </div>
 
-      <div className="relative z-10 flex-1 overflow-y-auto px-6 pb-20 max-w-5xl mx-auto w-full custom-scrollbar">
-        <div className="flex flex-col md:flex-row gap-10 items-start">
+      <div className="relative z-10 flex-1 overflow-y-auto px-4 sm:px-6 pb-20 max-w-5xl mx-auto w-full custom-scrollbar">
+        <div className="flex flex-col md:flex-row gap-6 sm:gap-10 items-start">
 
           {/* Book Cover & Info */}
           <div className="flex-shrink-0 w-full md:w-auto flex flex-col items-center md:items-start gap-6">
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              className="w-48 md:w-64 aspect-[2/3] rounded-lg shadow-2xl shadow-black/50 overflow-hidden relative group"
+              className="w-32 sm:w-48 md:w-64 aspect-[2/3] rounded-lg shadow-2xl shadow-black/50 overflow-hidden relative group"
             >
               {book.cover_url ? (
                 <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
@@ -151,7 +151,7 @@ export default function BookDetailsPage() {
             </motion.div>
 
             <div className="flex flex-col gap-3 text-center md:text-left">
-              <h1 className="text-3xl md:text-4xl font-bold font-serif leading-tight">{book.title}</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-serif leading-tight">{book.title}</h1>
               <p className="text-xl text-white/60 font-medium">{book.author}</p>
               {book.description && (
                 <p className="text-sm text-white/40 max-w-sm leading-relaxed">

@@ -97,7 +97,7 @@ export default function MdReaderSidebar({
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className={`fixed left-0 top-0 bottom-0 w-80 ${currentTheme.bg} ${currentTheme.text} shadow-2xl z-50 flex flex-col backdrop-blur-xl`}
+            className={`fixed left-0 top-0 bottom-0 w-full sm:w-80 ${currentTheme.bg} ${currentTheme.text} shadow-2xl z-50 flex flex-col backdrop-blur-xl`}
           >
             {/* Header */}
             <div className={`flex items-center justify-between px-6 py-4 border-b ${currentTheme.border}`}>
@@ -148,7 +148,7 @@ export default function MdReaderSidebar({
                           >
                             {index + 1}
                           </span>
-                          
+
                           {/* Chapter Title */}
                           <div className="flex-1 pt-1">
                             <p className={`text-sm font-medium ${isActive ? 'font-semibold' : ''}`}>
