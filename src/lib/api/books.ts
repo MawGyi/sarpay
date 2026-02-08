@@ -341,6 +341,36 @@ export async function uploadMultipleBooks(
 }
 
 /**
+ * Fetch chapter counts for multiple books in a single query
+ */
+export async function fetchChapterCounts(bookIds: string[]): Promise<{ counts: Map<string, number>; error: Error | null }> {
+    if (!supabase || !isSupabaseConfigured || bookIds.length === 0) {
+        return { counts: new Map(), error: null };
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('chapters')
+            .select('book_id')
+            .in('book_id', bookIds);
+
+        if (error) {
+            return { counts: new Map(), error: new Error(error.message) };
+        }
+
+        // Count chapters per book
+        const counts = new Map<string, number>();
+        (data || []).forEach((row: { book_id: string }) => {
+            counts.set(row.book_id, (counts.get(row.book_id) || 0) + 1);
+        });
+
+        return { counts, error: null };
+    } catch (err) {
+        return { counts: new Map(), error: err as Error };
+    }
+}
+
+/**
  * Fetch chapters for a book
  */
 export interface ChapterRow {

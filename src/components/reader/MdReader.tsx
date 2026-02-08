@@ -380,11 +380,11 @@ export default function MdReader({
                     >
                       <div className="flex items-center gap-2">
                         <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                        <span className="font-medium">Previous Law</span>
+                        <span className="font-medium">Previous Chapter</span>
                       </div>
                       {chapters && chapters[currentChapter - 2] && (
-                        <span className="text-xs opacity-60 ml-7" style={{ fontFamily: "'Pyidaungsu', 'Padauk', serif" }}>
-                          {chapters[currentChapter - 2].title.substring(0, 30)}...
+                        <span className="text-xs opacity-60 ml-7">
+                          {chapters[currentChapter - 2].title.substring(0, 40)}{chapters[currentChapter - 2].title.length > 40 ? '...' : ''}
                         </span>
                       )}
                     </button>
@@ -394,7 +394,7 @@ export default function MdReader({
 
                   {currentChapter && totalChapters && (
                     <span className="text-sm opacity-60 font-medium">
-                      Law {currentChapter} of {totalChapters}
+                      {currentChapter} of {totalChapters}
                     </span>
                   )}
 
@@ -404,12 +404,12 @@ export default function MdReader({
                       className="flex flex-col items-end gap-1 px-6 py-4 rounded-xl bg-current/10 hover:bg-current/20 transition-all hover:scale-105 group"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">Next Law</span>
+                        <span className="font-medium">Next Chapter</span>
                         <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                       </div>
                       {chapters && chapters[currentChapter] && (
-                        <span className="text-xs opacity-60 mr-7" style={{ fontFamily: "'Pyidaungsu', 'Padauk', serif" }}>
-                          {chapters[currentChapter].title.substring(0, 30)}...
+                        <span className="text-xs opacity-60 mr-7">
+                          {chapters[currentChapter].title.substring(0, 40)}{chapters[currentChapter].title.length > 40 ? '...' : ''}
                         </span>
                       )}
                     </button>

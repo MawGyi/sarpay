@@ -3,13 +3,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Grid3x3, List, RefreshCw, AlertCircle, Plus, Menu } from 'lucide-react';
+import { Search, Grid3x3, List, RefreshCw, AlertCircle, Plus, Menu, ArrowUpDown } from 'lucide-react';
 import { Sidebar, LibraryGrid, DeleteBookModal, EditMdBookModal } from '@/components/library';
 import { FilterCategory } from '@/components/library/Sidebar';
 import { UploadModal } from '@/components/upload/UploadModal';
-import { fetchBooks, deleteBook, fetchChapters } from '@/lib/api/books';
+import { fetchBooks, deleteBook, fetchChapterCounts } from '@/lib/api/books';
 import { fetchAllProgress } from '@/lib/api/progress';
 import type { Book, BookRow } from '@/types/database';
+
+export type SortOption = 'recent' | 'title-asc' | 'title-desc' | 'progress';
 
 export default function Home() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -23,6 +25,8 @@ export default function Home() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('all');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('recent');
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   // Fetch books from Supabase
   const loadBooks = useCallback(async () => {
@@ -47,16 +51,9 @@ export default function Home() {
         progressMap.set(p.book_id, p.percentage);
       });
 
-      // Fetch chapter counts for all books
-      const chapterCounts = new Map<string, number>();
-      await Promise.all(
-        booksResult.books.map(async (row: BookRow) => {
-          const { chapters } = await fetchChapters(row.id);
-          if (chapters && chapters.length > 0) {
-            chapterCounts.set(row.id, chapters.length);
-          }
-        })
-      );
+      // Fetch chapter counts for all books in a single query
+      const bookIds = booksResult.books.map((row: BookRow) => row.id);
+      const { counts: chapterCounts } = await fetchChapterCounts(bookIds);
 
       // Convert BookRow to Book with progress and chapter count
       const booksWithProgress: Book[] = booksResult.books.map((row: BookRow) => ({
@@ -188,8 +185,30 @@ export default function Home() {
       );
     }
 
+    // Apply sort
+    result = [...result].sort((a, b) => {
+      switch (sortBy) {
+        case 'title-asc':
+          return a.title.localeCompare(b.title);
+        case 'title-desc':
+          return b.title.localeCompare(a.title);
+        case 'progress':
+          return b.progress - a.progress;
+        case 'recent':
+        default:
+          return 0; // Keep original order (already sorted by created_at desc)
+      }
+    });
+
     return result;
-  }, [books, activeFilter, searchQuery]);
+  }, [books, activeFilter, searchQuery, sortBy]);
+
+  const sortOptions: { value: SortOption; label: string }[] = [
+    { value: 'recent', label: 'Recently Added' },
+    { value: 'title-asc', label: 'Title A → Z' },
+    { value: 'title-desc', label: 'Title Z → A' },
+    { value: 'progress', label: 'Most Progress' },
+  ];
 
   // Get filter label for display
   const getFilterLabel = (filter: FilterCategory) => {
@@ -219,7 +238,7 @@ export default function Home() {
       <div className="ml-0 sm:ml-64 min-h-screen">
         {/* Mobile Header - visible only on small screens */}
         <div className="sm:hidden sticky top-0 z-30 glass">
-          <div className="px-4 py-3 flex items-center gap-4">
+          <div className="px-4 py-3 flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
               className="p-2 -ml-2 text-foreground hover:bg-white/10 rounded-lg transition-colors"
@@ -227,7 +246,49 @@ export default function Home() {
             >
               <Menu className="w-6 h-6" />
             </button>
-            <h1 className="font-semibold text-lg">{getFilterLabel(activeFilter)}</h1>
+            <h1 className="font-semibold text-lg flex-shrink-0">{getFilterLabel(activeFilter)}</h1>
+            <div className="flex-1" />
+            {/* Mobile Sort Button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                className="p-2 text-muted hover:text-foreground transition-colors"
+                aria-label="Sort"
+              >
+                <ArrowUpDown className="w-5 h-5" />
+              </button>
+              {showSortMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowSortMenu(false)} />
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+                    {sortOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => { setSortBy(opt.value); setShowSortMenu(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                          sortBy === opt.value ? 'bg-accent/20 text-accent font-medium' : 'text-foreground hover:bg-white/5'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          {/* Mobile Search Bar */}
+          <div className="px-4 pb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+              <input
+                type="text"
+                placeholder="Search books..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
+              />
+            </div>
           </div>
         </div>
 
@@ -254,6 +315,36 @@ export default function Home() {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
+              {/* Sort Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowSortMenu(!showSortMenu)}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted hover:text-foreground bg-card border border-border rounded-xl transition-colors"
+                  title="Sort"
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5" />
+                  <span className="hidden lg:inline">{sortOptions.find(o => o.value === sortBy)?.label}</span>
+                </button>
+                {showSortMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowSortMenu(false)} />
+                    <div className="absolute right-0 top-full mt-1 w-48 bg-card border border-border rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+                      {sortOptions.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => { setSortBy(opt.value); setShowSortMenu(false); }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                            sortBy === opt.value ? 'bg-accent/20 text-accent font-medium' : 'text-foreground hover:bg-white/5'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
               {/* Refresh Button */}
               <button
                 onClick={loadBooks}
