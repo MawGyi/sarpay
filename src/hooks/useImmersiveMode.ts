@@ -3,9 +3,9 @@
 import { useState, useCallback, useEffect, useRef, RefObject } from 'react';
 
 interface UseImmersiveModeOptions {
-    /** Ref to the scrollable content container */
-    contentRef: RefObject<HTMLDivElement | null>;
-    /** Delay before auto-hiding UI after scrolling stops (ms) */
+    /** Ref to the scrollable content container (optional for non-scroll readers like EPUB) */
+    contentRef?: RefObject<HTMLDivElement | null>;
+    /** Delay before auto-hiding UI after inactivity (ms) */
     autoHideDelay?: number;
     /** Initial UI visibility state */
     initialVisible?: boolean;
@@ -35,11 +35,12 @@ interface UseImmersiveModeReturn {
  * 
  * Features:
  * - Click/tap to toggle UI visibility
- * - Auto-hide UI on scroll down
+ * - Auto-hide UI on scroll down (when contentRef provided)
+ * - Auto-hide UI after inactivity (for paginated readers like EPUB)
  * - Show UI when scrolling back to top
  * - Browser Fullscreen API integration
- * 
- * Isolated for MdReader use only.
+ *
+ * Works for both scroll-based readers (MdReader) and paginated readers (EpubReader).
  */
 export function useImmersiveMode({
     contentRef,
@@ -90,7 +91,7 @@ export function useImmersiveMode({
 
     // Handle scroll events
     const handleScroll = useCallback(() => {
-        if (!contentRef.current) return;
+        if (!contentRef?.current) return;
 
         const { scrollTop } = contentRef.current;
         const lastScrollTop = lastScrollTopRef.current;

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useReadingProgressSync } from '@/hooks/useReadingProgressSync';
 import { useReaderPreferences, ThemeMode } from '@/hooks/useLocalStorage';
+import { useImmersiveMode } from '@/hooks/useImmersiveMode';
 import ReaderSettings from './ReaderSettings';
 
 interface EpubReaderProps {
@@ -62,6 +63,16 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
 
   const { progress: savedProgress, updateProgress } = useReadingProgressSync(bookId);
   const { preferences, updatePreference } = useReaderPreferences();
+
+  // Immersive mode — auto-hide header/footer on inactivity
+  const {
+    isUIVisible,
+    isFullscreen,
+    toggleUI,
+    showUI,
+    handleMouseMove: immersiveHandleMouseMove,
+    toggleFullscreen,
+  } = useImmersiveMode({ autoHideDelay: 4000 });
 
   // Get font family CSS
   const getFontFamily = useCallback((fontFamily: 'serif' | 'sans' | 'pyidaungsu' | 'noto-sans-myanmar') => {
@@ -292,7 +303,8 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
   const goToChapter = useCallback((href: string) => {
     renditionRef.current?.display(href);
     setShowToc(false);
-  }, []);
+    showUI();
+  }, [showUI]);
 
   const currentTheme = themeStyles[preferences.theme] || themeStyles.original;
 
@@ -300,40 +312,62 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
     <div
       className="fixed inset-0 z-50 flex flex-col"
       style={{ backgroundColor: currentTheme.bg, color: currentTheme.text }}
+      onMouseMove={immersiveHandleMouseMove}
     >
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-current/10">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowToc(!showToc)}
-            className="p-2 rounded-lg hover:bg-current/10 transition-colors"
-            aria-label="Table of Contents"
-          >
-            <Menu size={20} />
-          </button>
-          <h1 className="text-lg font-medium truncate max-w-xs">{title || 'Reading'}</h1>
-        </div>
+      {/* Top Progress Bar — thin elegant indicator */}
+      <div className="fixed top-0 left-0 right-0 h-[2px] z-[60]" style={{ backgroundColor: `${currentTheme.text}15` }}>
+        <motion.div
+          className="h-full rounded-full"
+          style={{ backgroundColor: currentTheme.accent }}
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.2 }}
+        />
+      </div>
 
-        <div className="flex items-center gap-2">
-          {/* AA Settings Button */}
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="px-3 py-2 rounded-lg hover:bg-current/10 transition-colors font-bold text-lg"
-            aria-label="Reading settings"
+      {/* Header — auto-hide */}
+      <AnimatePresence>
+        {isUIVisible && (
+          <motion.header
+            initial={{ opacity: 0, y: '-100%' }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '-100%' }}
+            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+            className="flex items-center justify-between px-4 py-3 border-b border-current/10 backdrop-blur-sm"
+            style={{ backgroundColor: `${currentTheme.bg}cc` }}
           >
-            Aa
-          </button>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-current/10 transition-colors"
-              aria-label="Close reader"
-            >
-              <X size={20} />
-            </button>
-          )}
-        </div>
-      </header>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowToc(!showToc)}
+                className="p-2 rounded-lg hover:bg-current/10 transition-colors"
+                aria-label="Table of Contents"
+              >
+                <Menu size={20} />
+              </button>
+              <h1 className="text-lg font-medium truncate max-w-xs">{title || 'Reading'}</h1>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="px-3 py-2 rounded-lg hover:bg-current/10 transition-colors font-bold text-lg"
+                aria-label="Reading settings"
+              >
+                Aa
+              </button>
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-lg hover:bg-current/10 transition-colors"
+                  aria-label="Close reader"
+                >
+                  <X size={20} />
+                </button>
+              )}
+            </div>
+          </motion.header>
+        )}
+      </AnimatePresence>
 
       {/* Main content area */}
       <div className="flex-1 relative flex">
@@ -374,53 +408,78 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
 
         {/* Reader area */}
         <div className="flex-1 flex items-center justify-center relative overflow-hidden">
-          {/* Previous button - fixed position on mobile for visibility */}
-          <button
-            onClick={goPrev}
-            className="absolute left-0 sm:left-2 md:left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full hover:bg-current/10 active:bg-current/20 transition-colors z-20 bg-current/5 backdrop-blur-sm"
-            aria-label="Previous page"
-            style={{ minWidth: '36px', minHeight: '36px' }}
-          >
-            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-          </button>
+          {/* Previous button — auto-hide with UI */}
+          <AnimatePresence>
+            {isUIVisible && (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={goPrev}
+                className="absolute left-0 sm:left-2 md:left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full hover:bg-current/10 active:bg-current/20 transition-colors z-20 bg-current/5 backdrop-blur-sm"
+                aria-label="Previous page"
+                style={{ minWidth: '36px', minHeight: '36px' }}
+              >
+                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+              </motion.button>
+            )}
+          </AnimatePresence>
 
-          {/* EPUB viewer - responsive with proper padding for nav buttons */}
+          {/* EPUB viewer — tap center to toggle UI */}
           <div
             ref={viewerRef}
-            className="w-full h-full max-w-5xl mx-auto px-10 sm:px-14 md:px-16 lg:px-24 overflow-hidden"
-            style={{
-              // Ensure content doesn't overflow on mobile
-              maxWidth: '100vw',
-            }}
+            onClick={toggleUI}
+            className="w-full h-full max-w-5xl mx-auto px-10 sm:px-14 md:px-16 lg:px-24 overflow-hidden cursor-pointer"
+            style={{ maxWidth: '100vw' }}
           />
 
-          {/* Next button - fixed position on mobile for visibility */}
-          <button
-            onClick={goNext}
-            className="absolute right-0 sm:right-2 md:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full hover:bg-current/10 active:bg-current/20 transition-colors z-20 bg-current/5 backdrop-blur-sm"
-            aria-label="Next page"
-            style={{ minWidth: '36px', minHeight: '36px' }}
-          >
-            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
-          </button>
+          {/* Next button — auto-hide with UI */}
+          <AnimatePresence>
+            {isUIVisible && (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={goNext}
+                className="absolute right-0 sm:right-2 md:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full hover:bg-current/10 active:bg-current/20 transition-colors z-20 bg-current/5 backdrop-blur-sm"
+                aria-label="Next page"
+                style={{ minWidth: '36px', minHeight: '36px' }}
+              >
+                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <footer className="px-4 py-3 border-t border-current/10">
-        <div className="flex items-center gap-4">
-          <span className="text-sm opacity-70">{progress}%</span>
-          <div className="flex-1 h-1 bg-current/20 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full rounded-full"
-              style={{ backgroundColor: currentTheme.accent }}
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
-        </div>
-      </footer>
+      {/* Progress bar — auto-hide */}
+      <AnimatePresence>
+        {isUIVisible && (
+          <motion.footer
+            initial={{ opacity: 0, y: '100%' }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '100%' }}
+            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+            className="px-4 py-3 border-t border-current/10 backdrop-blur-sm"
+            style={{ backgroundColor: `${currentTheme.bg}cc` }}
+          >
+            <div className="flex items-center gap-4">
+              <span className="text-sm opacity-70">{progress}%</span>
+              <div className="flex-1 h-1 bg-current/20 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: currentTheme.accent }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+            </div>
+          </motion.footer>
+        )}
+      </AnimatePresence>
 
       {/* Loading overlay */}
       <AnimatePresence>
@@ -444,7 +503,12 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
       </AnimatePresence>
 
       {/* Reader Settings */}
-      <ReaderSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      <ReaderSettings
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={toggleFullscreen}
+      />
     </div>
   );
 }

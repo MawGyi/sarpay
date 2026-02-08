@@ -3,13 +3,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Grid3x3, List, RefreshCw, AlertCircle, Plus, Menu, ArrowUpDown } from 'lucide-react';
+import { Search, Grid3x3, List, RefreshCw, AlertCircle, Plus, Menu, ArrowUpDown, BookOpen } from 'lucide-react';
 import { Sidebar, LibraryGrid, DeleteBookModal, EditMdBookModal } from '@/components/library';
 import { FilterCategory } from '@/components/library/Sidebar';
 import { UploadModal } from '@/components/upload/UploadModal';
 import { fetchBooks, deleteBook, fetchChapterCounts } from '@/lib/api/books';
 import { fetchAllProgress } from '@/lib/api/progress';
-import type { Book, BookRow } from '@/types/database';
+import type { Book, BookRow, UserProgressRow } from '@/types/database';
 
 export type SortOption = 'recent' | 'title-asc' | 'title-desc' | 'progress';
 
@@ -27,6 +27,7 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [lastReadBookId, setLastReadBookId] = useState<string | null>(null);
 
   // Fetch books from Supabase
   const loadBooks = useCallback(async () => {
@@ -50,6 +51,12 @@ export default function Home() {
       progressResult.progress.forEach((p) => {
         progressMap.set(p.book_id, p.percentage);
       });
+
+      // Find the most recently read book (has progress > 0 and < 100)
+      const recentlyRead = progressResult.progress
+        .filter((p: UserProgressRow) => p.percentage > 0 && p.percentage < 100)
+        .sort((a: UserProgressRow, b: UserProgressRow) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+      setLastReadBookId(recentlyRead?.book_id || null);
 
       // Fetch chapter counts for all books in a single query
       const bookIds = booksResult.books.map((row: BookRow) => row.id);
@@ -209,6 +216,12 @@ export default function Home() {
     { value: 'title-desc', label: 'Title Z → A' },
     { value: 'progress', label: 'Most Progress' },
   ];
+
+  // Last-read book for continue reading banner
+  const lastReadBook = useMemo(() => {
+    if (!lastReadBookId) return null;
+    return books.find(b => b.id === lastReadBookId) || null;
+  }, [books, lastReadBookId]);
 
   // Get filter label for display
   const getFilterLabel = (filter: FilterCategory) => {
@@ -399,6 +412,53 @@ export default function Home() {
                 }
               </p>
             </div>
+
+            {/* Continue Reading Banner */}
+            {!isLoading && lastReadBook && activeFilter === 'all' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 sm:mb-8"
+              >
+                <h3 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3">Continue Reading</h3>
+                <motion.button
+                  onClick={() => handleBookClick(lastReadBook)}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl border border-border bg-card/50 hover:bg-card/80 backdrop-blur-sm transition-all text-left group"
+                >
+                  {/* Cover thumbnail */}
+                  <div className="w-14 h-20 sm:w-16 sm:h-24 rounded-lg overflow-hidden flex-shrink-0 shadow-lg">
+                    {lastReadBook.coverUrl ? (
+                      <img src={lastReadBook.coverUrl} alt={lastReadBook.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-accent to-purple-600 flex items-center justify-center p-1">
+                        <span className="text-white text-[10px] font-medium text-center line-clamp-2">{lastReadBook.title}</span>
+                      </div>
+                    )}
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-foreground truncate group-hover:text-accent transition-colors">{lastReadBook.title}</h4>
+                    <p className="text-sm text-muted truncate">{lastReadBook.author}</p>
+                    {/* Progress bar */}
+                    <div className="mt-2 flex items-center gap-3">
+                      <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden max-w-[200px]">
+                        <div
+                          className="h-full bg-accent rounded-full transition-all"
+                          style={{ width: `${Math.round(lastReadBook.progress)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted font-medium">{Math.round(lastReadBook.progress)}%</span>
+                    </div>
+                  </div>
+                  {/* CTA */}
+                  <div className="flex-shrink-0 p-3 rounded-xl bg-accent/10 group-hover:bg-accent/20 transition-colors">
+                    <BookOpen className="w-5 h-5 text-accent" />
+                  </div>
+                </motion.button>
+              </motion.div>
+            )}
 
             {/* Error State */}
             {error && (

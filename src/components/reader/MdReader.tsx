@@ -90,6 +90,14 @@ export default function MdReader({
   const { progress: savedProgress, updateProgress } = useReadingProgress(bookId);
   const { preferences, updatePreference } = useReaderPreferences();
 
+  // Estimate reading time (~200 words per minute)
+  const readingTimeEstimate = useMemo(() => {
+    const wordCount = content.split(/\s+/).filter(Boolean).length;
+    const totalMinutes = Math.ceil(wordCount / 200);
+    const remainingMinutes = Math.ceil(totalMinutes * (1 - progress / 100));
+    return { wordCount, totalMinutes, remainingMinutes };
+  }, [content, progress]);
+
   // Immersive mode hook for auto-hiding UI
   const {
     isUIVisible,
@@ -177,6 +185,32 @@ export default function MdReader({
     contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
+  // Swipe gesture support for chapter navigation
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    const elapsed = Date.now() - touchStartRef.current.time;
+    touchStartRef.current = null;
+
+    // Must be a horizontal swipe: fast, far enough, and more horizontal than vertical
+    if (elapsed > 500 || Math.abs(deltaX) < 80 || Math.abs(deltaY) > Math.abs(deltaX) * 0.6) return;
+
+    if (deltaX > 0 && onPreviousChapter && currentChapter && currentChapter > 1) {
+      onPreviousChapter();
+    } else if (deltaX < 0 && onNextChapter && currentChapter && totalChapters && currentChapter < totalChapters) {
+      onNextChapter();
+    }
+  }, [onPreviousChapter, onNextChapter, currentChapter, totalChapters]);
+
   const currentTheme = themeStyles[preferences.theme] || themeStyles.original;
 
   // Adjust line height specifically for Burmese scripts - enforce 2.0 minimum
@@ -253,6 +287,8 @@ export default function MdReader({
         ref={contentRef}
         onScroll={handleScroll}
         onClick={handleContentClick}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         className="flex-1 overflow-y-auto scroll-smooth cursor-pointer"
         style={{
           filter: `brightness(${preferences.brightness / 100})`,
@@ -445,6 +481,11 @@ export default function MdReader({
                   transition={{ duration: 0.3 }}
                 />
               </div>
+              <span className="text-xs opacity-50 whitespace-nowrap">
+                {readingTimeEstimate.remainingMinutes > 0
+                  ? `${readingTimeEstimate.remainingMinutes} min left`
+                  : 'Done'}
+              </span>
             </div>
           </motion.footer>
         )}

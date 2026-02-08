@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sun, Minus, Plus, Maximize2, Minimize2 } from 'lucide-react';
+import { X, Sun, Minus, Plus, Maximize2, Minimize2, Type, AlignJustify } from 'lucide-react';
 import { useReaderPreferences, ThemeMode, FontFamily, FontWeight } from '@/hooks/useLocalStorage';
 
 interface ReaderSettingsProps {
@@ -54,6 +54,11 @@ export default function ReaderSettings({
 
   const handleBrightnessChange = (value: number) => {
     updatePreference('brightness', value);
+  };
+
+  const handleLineHeightChange = (delta: number) => {
+    const newHeight = Math.max(1.2, Math.min(2.4, Math.round((preferences.lineHeight + delta) * 10) / 10));
+    updatePreference('lineHeight', newHeight);
   };
 
   return (
@@ -182,6 +187,67 @@ export default function ReaderSettings({
                   </button>
                 </div>
               )}
+
+              {/* Line Height */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase opacity-50 mb-2 pl-1">Line Height</h3>
+                <div className="flex items-center justify-between bg-black/5 dark:bg-white/10 rounded-xl p-1">
+                  <button
+                    onClick={() => handleLineHeightChange(-0.1)}
+                    disabled={preferences.lineHeight <= 1.2}
+                    className="flex-1 py-2 flex items-center justify-center text-sm font-medium opacity-70 hover:opacity-100 disabled:opacity-30"
+                  >
+                    <AlignJustify className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs font-medium opacity-60 min-w-[3rem] text-center">{preferences.lineHeight.toFixed(1)}</span>
+                  <button
+                    onClick={() => handleLineHeightChange(0.1)}
+                    disabled={preferences.lineHeight >= 2.4}
+                    className="flex-1 py-2 flex items-center justify-center text-sm font-medium opacity-70 hover:opacity-100 disabled:opacity-30"
+                  >
+                    <AlignJustify className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Font Weight */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase opacity-50 mb-2 pl-1">Weight</h3>
+                <div className="flex items-center gap-1 bg-black/5 dark:bg-white/10 rounded-xl p-1">
+                  {fontWeightOptions.map((opt) => (
+                    <button
+                      key={opt.weight}
+                      onClick={() => handleFontWeightChange(opt.weight)}
+                      className={`
+                        flex-1 py-2 rounded-lg text-sm transition-colors
+                        ${preferences.fontWeight === opt.weight
+                          ? 'bg-blue-500 text-white shadow-sm'
+                          : 'hover:bg-black/5 dark:hover:bg-white/5'}
+                      `}
+                      style={{ fontWeight: opt.value }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Brightness */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase opacity-50 mb-2 pl-1">Brightness</h3>
+                <div className="flex items-center gap-3 px-1">
+                  <Sun className="w-4 h-4 opacity-40" />
+                  <input
+                    type="range"
+                    min={40}
+                    max={100}
+                    value={preferences.brightness}
+                    onChange={(e) => handleBrightnessChange(Number(e.target.value))}
+                    className="flex-1 accent-blue-500 h-1 cursor-pointer"
+                  />
+                  <Sun className="w-5 h-5 opacity-70" />
+                </div>
+              </div>
 
             </div>
           </motion.div>
