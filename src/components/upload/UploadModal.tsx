@@ -342,10 +342,13 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
           exit={{ scale: 0.95, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
           className="w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="upload-modal-title"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
-            <h2 className="text-xl font-semibold text-foreground">
+            <h2 id="upload-modal-title" className="text-xl font-semibold text-foreground">
               {files.length > 1 ? `Upload ${files.length} Books` : 'Upload Book'}
             </h2>
             <button

@@ -9,14 +9,14 @@
   --background: #09090b;
   --background-elevated: #18181b;
   --foreground: #fafafa;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
+  --accent: #FF9F0A;
+  --accent-hover: #FFB340;
   --muted: #a1a1aa;
   --card: #27272a;
   --border: rgba(255, 255, 255, 0.1);
 
   /* Radial gradient for depth */
-  --bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.15), transparent);
+  --bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 159, 10, 0.06), transparent);
 
   /* Enhanced shadows for depth */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -29,7 +29,7 @@
   --book-shadow-hover: 0 32px 64px rgba(0, 0, 0, 0.6), 0 16px 32px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.4);
 
   /* Glow effect for hover - enhanced */
-  --glow-color: rgba(59, 130, 246, 0.5);
+  --glow-color: rgba(255, 159, 10, 0.25);
 
   /* Typography */
   --font-serif: 'Lora', 'Georgia', 'Times New Roman', serif;
@@ -122,7 +122,128 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Book card effects */
+/* ===== APPLE BOOKS CARD SYSTEM ===== */
+
+/* Outer card wrapper — perspective for 3D tilt */
+.book-card-apple {
+  position: relative;
+  perspective: 900px;
+}
+
+/* 3D book body — wraps cover + spine + pages */
+.book-body {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: 4px 8px 8px 4px;
+}
+
+/* Spine — left edge gradient */
+.book-body::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 14px;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.35) 0%,
+    rgba(0, 0, 0, 0.15) 40%,
+    rgba(255, 255, 255, 0.06) 60%,
+    transparent 100%
+  );
+  border-radius: 4px 0 0 4px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Page edges — right side paper texture */
+.book-body::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  top: 4px;
+  bottom: 4px;
+  width: 6px;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.07) 0px,
+    rgba(255, 255, 255, 0.03) 1px,
+    rgba(255, 255, 255, 0.07) 2px
+  );
+  border-radius: 0 2px 2px 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Bottom page-edge for depth */
+.book-page-bottom {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: -3px;
+  height: 6px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06) 0px,
+    rgba(255, 255, 255, 0.03) 1px,
+    rgba(255, 255, 255, 0.06) 2px
+  );
+  border-radius: 0 0 2px 2px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Hover: subtle lift + rotate for 3D peek */
+.book-card-apple:hover .book-body {
+  transform: rotateY(-4deg) translateY(-8px);
+  box-shadow:
+    8px 16px 40px rgba(0, 0, 0, 0.5),
+    2px 4px 12px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Rest shadow */
+.book-body-shadow {
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+/* Cover highlight — top-left light reflection */
+.book-cover-highlight {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    transparent 40%,
+    transparent 100%
+  );
+  border-radius: 4px 8px 8px 4px;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.book-card-apple:hover .book-cover-highlight {
+  opacity: 1;
+}
+
+/* Progress dot indicator — Apple style */
+.progress-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+}
+
+/* Legacy glow — keep for backward compat but soften */
 .book-card-glow {
   position: relative;
 }
@@ -140,7 +261,7 @@ body {
 }
 
 .book-card-glow:hover::before {
-  opacity: 1;
+  opacity: 0.6;
 }
 
 /* Smooth transitions */

@@ -5,6 +5,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { fetchBookById, fetchChapters } from '@/lib/api/books';
 import { getSupabase } from '@/lib/supabase';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import MdReader from '@/components/reader/MdReader';
 import { EpubReader } from '@/components/reader';
 import type { BookRow, ChapterRow } from '@/types/database';
@@ -154,18 +155,21 @@ export default function ReaderPage() {
   // Render EPUB Reader
   if (book.format_type === 'epub') {
       return (
-          <EpubReader 
-              url={book.file_url} 
-              bookId={book.id} 
-              title={book.title} 
-              onClose={handleClose} 
-          />
+          <ErrorBoundary section="EPUB reader">
+            <EpubReader 
+                url={book.file_url} 
+                bookId={book.id} 
+                title={book.title} 
+                onClose={handleClose} 
+            />
+          </ErrorBoundary>
       );
   }
 
   // Render Markdown Reader
   return (
-      <MdReader 
+      <ErrorBoundary section="Markdown reader">
+        <MdReader 
           content={content} 
           bookId={currentChapter ? `${book.id}_${currentChapter.id}` : book.id} 
           title={currentChapter ? currentChapter.title : book.title}
@@ -178,5 +182,6 @@ export default function ReaderPage() {
           currentChapterId={currentChapter?.id}
           onChapterSelect={handleChapterSelect}
       />
+      </ErrorBoundary>
   );
 }

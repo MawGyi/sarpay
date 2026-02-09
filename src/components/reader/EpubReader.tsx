@@ -123,11 +123,10 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
     rendition.themes.select(theme);
   }, []);
 
-  // Apply custom styles (typography, brightness, etc.)
+  // Apply custom styles (typography, etc.)
   const applyCustomStyles = useCallback((rendition: Rendition) => {
     const fontFamily = getFontFamily(preferences.fontFamily);
     const fontWeight = getFontWeight(preferences.fontWeight);
-    const brightness = preferences.brightness / 100;
 
     // Adjust line height specifically for Burmese scripts if needed, but 1.8-2.0 is good generally
     const lineHeight = preferences.fontFamily === 'pyidaungsu' || preferences.fontFamily === 'noto-sans-myanmar'
@@ -138,17 +137,15 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
 
     // Apply styles using the correct EPUB.js API
     // Inject responsive padding via CSS if possible, but for default theme:
+    // Brightness is applied as an overlay on the outer container, not inside the iframe
     rendition.themes.default({
       'body': {
         'font-family': `${fontFamily} !important`,
         'line-height': `${lineHeight} !important`,
         'font-weight': `${fontWeight} !important`,
-        'filter': `brightness(${brightness}) !important`,
-        'padding-top': 'env(safe-area-inset-top) !important', // Handle notch
-        'padding-bottom': 'env(safe-area-inset-bottom) !important',
-        // We handle horizontal padding in the container mostly, but add some here for safety
-        'padding-left': '20px !important',
-        'padding-right': '20px !important',
+        'padding': '0 !important',
+        'margin': '0 !important',
+        'overflow': 'hidden !important',
       },
       'p': {
         'margin-bottom': '1em !important',
@@ -178,20 +175,16 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
     const book = ePub(url);
     bookRef.current = book;
 
-    // Detect screen size for spread and set appropriate width
-    const isMobile = window.innerWidth < 640;
+    // Detect screen size for spread
     const isLargeScreen = window.innerWidth >= 1024;
 
-    // Calculate content width based on screen size
-    // Mobile: full width minus nav buttons space
-    // Tablet/Desktop: more generous width
-    const contentWidth = isMobile
-      ? window.innerWidth - 80 // Leave space for nav buttons
-      : '100%';
+    // Use the actual container width — this accounts for fullscreen, padding, etc.
+    const containerWidth = viewerRef.current.clientWidth;
+    const containerHeight = viewerRef.current.clientHeight;
 
     const rendition = book.renderTo(viewerRef.current, {
-      width: contentWidth,
-      height: '100%',
+      width: containerWidth,
+      height: containerHeight,
       spread: isLargeScreen ? 'auto' : 'none',
       flow: 'paginated',
     });
@@ -251,15 +244,12 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
       }
     };
 
-    // Handle window resize for responsive layout
+    // Handle window resize & fullscreen changes
     const handleResize = () => {
       if (renditionRef.current && viewerRef.current) {
-        const newIsMobile = window.innerWidth < 640;
-        const newWidth = newIsMobile
-          ? window.innerWidth - 80
-          : viewerRef.current.clientWidth;
-
-        renditionRef.current.resize(newWidth, viewerRef.current.clientHeight);
+        const newWidth = viewerRef.current.clientWidth;
+        const newHeight = viewerRef.current.clientHeight;
+        renditionRef.current.resize(newWidth, newHeight);
       }
     };
 
@@ -272,10 +262,14 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
 
     document.addEventListener('keydown', handleKeydown);
     window.addEventListener('resize', debouncedResize);
+    document.addEventListener('fullscreenchange', handleResize);
+    document.addEventListener('webkitfullscreenchange', handleResize);
 
     return () => {
       document.removeEventListener('keydown', handleKeydown);
       window.removeEventListener('resize', debouncedResize);
+      document.removeEventListener('fullscreenchange', handleResize);
+      document.removeEventListener('webkitfullscreenchange', handleResize);
       clearTimeout(resizeTimeout);
       book.destroy();
     };
@@ -333,7 +327,7 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '-100%' }}
             transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-            className="flex items-center justify-between px-4 py-3 border-b border-current/10 backdrop-blur-sm"
+            className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 border-b border-current/10 backdrop-blur-md"
             style={{ backgroundColor: `${currentTheme.bg}cc` }}
           >
             <div className="flex items-center gap-3">
@@ -382,7 +376,7 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
               className="absolute left-0 top-0 bottom-0 w-full sm:w-72 border-r border-current/10 overflow-y-auto z-20"
               style={{ backgroundColor: currentTheme.bg }}
             >
-              <div className="p-4">
+              <div className="p-4 pt-14">
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <BookOpen size={20} />
                   Contents
@@ -430,9 +424,20 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
           <div
             ref={viewerRef}
             onClick={toggleUI}
-            className="w-full h-full max-w-5xl mx-auto px-10 sm:px-14 md:px-16 lg:px-24 overflow-hidden cursor-pointer"
-            style={{ maxWidth: '100vw' }}
+            className="w-full h-full max-w-5xl mx-auto cursor-pointer"
+            style={{ padding: '0 clamp(12px, 3vw, 48px)' }}
           />
+
+          {/* Brightness overlay — covers content area */}
+          {preferences.brightness < 100 && (
+            <div
+              className="absolute inset-0 pointer-events-none z-10"
+              style={{
+                backgroundColor: 'black',
+                opacity: 1 - preferences.brightness / 100,
+              }}
+            />
+          )}
 
           {/* Next button — auto-hide with UI */}
           <AnimatePresence>
@@ -462,7 +467,7 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '100%' }}
             transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-            className="px-4 py-3 border-t border-current/10 backdrop-blur-sm"
+            className="absolute bottom-0 left-0 right-0 z-30 px-4 py-3 border-t border-current/10 backdrop-blur-md"
             style={{ backgroundColor: `${currentTheme.bg}cc` }}
           >
             <div className="flex items-center gap-4">

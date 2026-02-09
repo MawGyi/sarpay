@@ -40,6 +40,10 @@ export function DeleteBookModal({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', duration: 0.3 }}
             className="bg-zinc-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-white/10"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+            aria-describedby="delete-modal-desc"
           >
             {/* Header */}
             <div className="p-6 border-b border-white/10">
@@ -49,8 +53,8 @@ export function DeleteBookModal({
                     <AlertTriangle className="w-6 h-6 text-red-500" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">Delete Book</h2>
-                    <p className="text-sm text-white/60 mt-1">This action cannot be undone</p>
+                    <h2 id="delete-modal-title" className="text-xl font-bold text-white">Delete Book</h2>
+                    <p id="delete-modal-desc" className="text-sm text-white/60 mt-1">This action cannot be undone</p>
                   </div>
                 </div>
                 <button

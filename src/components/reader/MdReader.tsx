@@ -243,7 +243,7 @@ export default function MdReader({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '-100%' }}
             transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-            className="flex items-center justify-between px-4 py-3 border-b border-current/10 backdrop-blur-sm bg-inherit/80"
+            className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 border-b border-current/10 backdrop-blur-md bg-inherit/80"
           >
             <div className="flex items-center gap-3">
               {/* ToC Menu Button */}
@@ -283,15 +283,15 @@ export default function MdReader({
       </AnimatePresence>
 
       {/* Content area - clickable for immersive toggle */}
+      <div className="flex-1 relative overflow-hidden">
       <div
         ref={contentRef}
         onScroll={handleScroll}
         onClick={handleContentClick}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className="flex-1 overflow-y-auto scroll-smooth cursor-pointer"
+        className="flex-1 h-full overflow-y-auto scroll-smooth cursor-pointer"
         style={{
-          filter: `brightness(${preferences.brightness / 100})`,
           overscrollBehaviorY: 'none',
           WebkitOverflowScrolling: 'touch',
         }}
@@ -305,7 +305,7 @@ export default function MdReader({
             exit={{ opacity: 0, x: -40 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className={`
-              mx-auto px-4 sm:px-6 md:px-12 py-8 sm:py-12 max-w-3xl
+              mx-auto px-4 sm:px-6 md:px-12 pt-16 pb-20 max-w-3xl
               prose ${currentTheme.prose} prose-lg
               prose-headings:font-serif
               prose-p:leading-relaxed
@@ -459,6 +459,18 @@ export default function MdReader({
         </AnimatePresence>
       </div>
 
+      {/* Brightness overlay */}
+      {preferences.brightness < 100 && (
+        <div
+          className="absolute inset-0 pointer-events-none z-10"
+          style={{
+            backgroundColor: 'black',
+            opacity: 1 - preferences.brightness / 100,
+          }}
+        />
+      )}
+      </div>
+
       {/* Progress bar - Auto-hide with slide-in from bottom */}
       <AnimatePresence>
         {isUIVisible && (
@@ -467,7 +479,7 @@ export default function MdReader({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '100%' }}
             transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-            className="px-4 py-3 border-t border-current/10"
+            className="absolute bottom-0 left-0 right-0 z-30 px-4 py-3 border-t border-current/10 backdrop-blur-md bg-inherit/80"
           >
             <div className="flex items-center gap-4">
               <span className="text-sm opacity-70">{progress}%</span>

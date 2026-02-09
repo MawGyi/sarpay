@@ -167,3 +167,24 @@ export interface ChapterInsert {
     created_at?: string;
 }
 
+/**
+ * Collection (shelf) for organizing books
+ */
+export interface Collection {
+    id: string;
+    name: string;
+    emoji: string;
+    bookIds: string[];
+    createdAt: string;
+}
+
+/**
+ * Extended Book type with reading stats for detail page
+ */
+export interface BookWithStats extends Book {
+    lastReadAt?: string;
+    totalReadingTime?: number; // minutes
+    currentChapter?: string;
+    totalChapters?: number;
+}
+

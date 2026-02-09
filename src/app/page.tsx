@@ -3,12 +3,18 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Grid3x3, List, RefreshCw, AlertCircle, Plus, Menu, ArrowUpDown, BookOpen } from 'lucide-react';
+import { Search, Grid3x3, List, RefreshCw, AlertCircle, Menu, ArrowUpDown, BookOpen, FolderPlus, Settings2, Plus } from 'lucide-react';
 import { Sidebar, LibraryGrid, DeleteBookModal, EditMdBookModal } from '@/components/library';
 import { FilterCategory } from '@/components/library/Sidebar';
+import { RecentlyRead } from '@/components/library/RecentlyRead';
+import { EmptyLibraryIllustration, NoResultsIllustration, EmptyCollectionIllustration } from '@/components/library/EmptyStates';
+import { CollectionManagerModal, AddToCollectionModal } from '@/components/library/CollectionModals';
 import { UploadModal } from '@/components/upload/UploadModal';
-import { fetchBooks, deleteBook, fetchChapterCounts } from '@/lib/api/books';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { fetchBooks, fetchChapterCounts, deleteBook } from '@/lib/api/books';
 import { fetchAllProgress } from '@/lib/api/progress';
+import { useCollections } from '@/hooks/useCollections';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Book, BookRow, UserProgressRow } from '@/types/database';
 
 export type SortOption = 'recent' | 'title-asc' | 'title-desc' | 'progress';
@@ -19,15 +25,31 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [bookToDelete, setBookToDelete] = useState<Book | null>(null);
-  const [bookToEdit, setBookToEdit] = useState<Book | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('all');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [lastReadBookId, setLastReadBookId] = useState<string | null>(null);
+  const [progressMap, setProgressMap] = useState<Map<string, { percentage: number; updatedAt: string }>>(new Map());
+  const [showCollectionManager, setShowCollectionManager] = useState(false);
+  const [bookToAddToCollection, setBookToAddToCollection] = useState<Book | null>(null);
+
+  // Admin CRUD state
+  const { isAdmin, signOut } = useAuth();
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [bookToDelete, setBookToDelete] = useState<Book | null>(null);
+  const [bookToEdit, setBookToEdit] = useState<Book | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Collections hook
+  const {
+    collections,
+    createCollection,
+    deleteCollection,
+    renameCollection,
+    addBookToCollection,
+    removeBookFromCollection,
+  } = useCollections();
 
   // Fetch books from Supabase
   const loadBooks = useCallback(async () => {
@@ -48,9 +70,12 @@ export default function Home() {
 
       // Create a map of book progress
       const progressMap = new Map<string, number>();
+      const progressDataMap = new Map<string, { percentage: number; updatedAt: string }>();
       progressResult.progress.forEach((p) => {
         progressMap.set(p.book_id, p.percentage);
+        progressDataMap.set(p.book_id, { percentage: p.percentage, updatedAt: p.updated_at });
       });
+      setProgressMap(progressDataMap);
 
       // Find the most recently read book (has progress > 0 and < 100)
       const recentlyRead = progressResult.progress
@@ -84,20 +109,30 @@ export default function Home() {
     }
   }, []);
 
+  // Delete book handler (admin only)
+  const handleConfirmDelete = useCallback(async () => {
+    if (!bookToDelete) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await deleteBook(bookToDelete.id);
+      if (error) {
+        console.error('Delete failed:', error);
+      } else {
+        setBooks((prev) => prev.filter((b) => b.id !== bookToDelete.id));
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+    } finally {
+      setIsDeleting(false);
+      setBookToDelete(null);
+    }
+  }, [bookToDelete]);
+
   useEffect(() => {
     loadBooks();
   }, [loadBooks]);
 
-  const handleUploadClick = () => {
-    setShowUploadModal(true);
-  };
-
-  const handleUploadComplete = () => {
-    setShowUploadModal(false);
-    loadBooks(); // Refresh the book list
-  };
-
-  const router = useRouter(); // Need to add import
+  const router = useRouter();
 
   const handleBookClick = (book: Book) => {
     // For EPUBs, we might keep the modal or also go to details. 
@@ -108,45 +143,6 @@ export default function Home() {
     // Let's stick to the request: "UI Change: The Library Grid should only show one card... instead of going straight to reader, show a list of chapters"
     // So we redirect to /book/[id].
     router.push(`/book/${book.id}`);
-  };
-
-  const handleDeleteClick = (book: Book) => {
-    setBookToDelete(book);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!bookToDelete) return;
-
-    setIsDeleting(true);
-    // Optimistic update
-    const previousBooks = [...books];
-    setBooks(books.filter(b => b.id !== bookToDelete.id));
-
-    try {
-      const { error } = await deleteBook(bookToDelete.id);
-      if (error) {
-        throw error;
-      }
-      setBookToDelete(null);
-    } catch (err) {
-      console.error('Failed to delete book:', err);
-      // Revert optimistic update
-      setBooks(previousBooks);
-      setError('Failed to delete book. Please try again.');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleEditClick = (book: Book) => {
-    if (book.formatType === 'md') {
-      setBookToEdit(book);
-    }
-  };
-
-  const handleEditComplete = () => {
-    setBookToEdit(null);
-    loadBooks(); // Refresh to show updates
   };
 
   // Calculate book counts for sidebar
@@ -161,26 +157,40 @@ export default function Home() {
     return counts;
   }, [books]);
 
+  // Check if activeFilter is a collection ID
+  const activeCollectionId = useMemo(() => {
+    if (['all', 'epub', 'md', 'reading', 'finished'].includes(activeFilter)) return null;
+    return activeFilter;
+  }, [activeFilter]);
+
   // Filter books based on active filter and search
   const filteredBooks = useMemo(() => {
     let result = books;
 
-    // Apply category filter
-    switch (activeFilter) {
-      case 'epub':
-        result = result.filter(b => b.formatType === 'epub');
-        break;
-      case 'md':
-        result = result.filter(b => b.formatType === 'md');
-        break;
-      case 'reading':
-        result = result.filter(b => b.progress > 0 && b.progress < 100);
-        break;
-      case 'finished':
-        result = result.filter(b => b.progress === 100);
-        break;
-      default:
-        break;
+    // Apply collection filter
+    if (activeCollectionId) {
+      const col = collections.find(c => c.id === activeCollectionId);
+      if (col) {
+        result = result.filter(b => col.bookIds.includes(b.id));
+      }
+    } else {
+      // Apply category filter
+      switch (activeFilter) {
+        case 'epub':
+          result = result.filter(b => b.formatType === 'epub');
+          break;
+        case 'md':
+          result = result.filter(b => b.formatType === 'md');
+          break;
+        case 'reading':
+          result = result.filter(b => b.progress > 0 && b.progress < 100);
+          break;
+        case 'finished':
+          result = result.filter(b => b.progress === 100);
+          break;
+        default:
+          break;
+      }
     }
 
     // Apply search filter
@@ -225,6 +235,10 @@ export default function Home() {
 
   // Get filter label for display
   const getFilterLabel = (filter: FilterCategory) => {
+    if (activeCollectionId) {
+      const col = collections.find(c => c.id === activeCollectionId);
+      return col ? `${col.emoji} ${col.name}` : 'Collection';
+    }
     switch (filter) {
       case 'all': return 'All Books';
       case 'epub': return 'EPUBs';
@@ -239,12 +253,16 @@ export default function Home() {
     <div className="min-h-screen bg-library text-foreground">
       {/* Sidebar */}
       <Sidebar
-        onUploadClick={handleUploadClick}
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
         bookCounts={bookCounts}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        collections={collections}
+        onManageCollections={() => setShowCollectionManager(true)}
+        isAdmin={isAdmin}
+        onLogout={signOut}
+        onAdminLogin={() => router.push('/admin/login')}
       />
 
       {/* Main Content Area - responsive margin */}
@@ -299,6 +317,7 @@ export default function Home() {
                 placeholder="Search books..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search books"
                 className="w-full pl-9 pr-4 py-2 bg-card border border-border rounded-xl text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
               />
             </div>
@@ -321,6 +340,7 @@ export default function Home() {
                   placeholder="Search books..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label="Search books"
                   className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-xl text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all"
                 />
               </div>
@@ -396,7 +416,7 @@ export default function Home() {
         </motion.header>
 
         {/* Library Content */}
-        <main className="px-4 sm:px-8 py-6 sm:py-8">
+        <main id="main-content" className="px-4 sm:px-8 py-6 sm:py-8" role="main" aria-label="Book library">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -413,51 +433,13 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Continue Reading Banner */}
-            {!isLoading && lastReadBook && activeFilter === 'all' && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 sm:mb-8"
-              >
-                <h3 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3">Continue Reading</h3>
-                <motion.button
-                  onClick={() => handleBookClick(lastReadBook)}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl border border-border bg-card/50 hover:bg-card/80 backdrop-blur-sm transition-all text-left group"
-                >
-                  {/* Cover thumbnail */}
-                  <div className="w-14 h-20 sm:w-16 sm:h-24 rounded-lg overflow-hidden flex-shrink-0 shadow-lg">
-                    {lastReadBook.coverUrl ? (
-                      <img src={lastReadBook.coverUrl} alt={lastReadBook.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-accent to-purple-600 flex items-center justify-center p-1">
-                        <span className="text-white text-[10px] font-medium text-center line-clamp-2">{lastReadBook.title}</span>
-                      </div>
-                    )}
-                  </div>
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-foreground truncate group-hover:text-accent transition-colors">{lastReadBook.title}</h4>
-                    <p className="text-sm text-muted truncate">{lastReadBook.author}</p>
-                    {/* Progress bar */}
-                    <div className="mt-2 flex items-center gap-3">
-                      <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden max-w-[200px]">
-                        <div
-                          className="h-full bg-accent rounded-full transition-all"
-                          style={{ width: `${Math.round(lastReadBook.progress)}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-muted font-medium">{Math.round(lastReadBook.progress)}%</span>
-                    </div>
-                  </div>
-                  {/* CTA */}
-                  <div className="flex-shrink-0 p-3 rounded-xl bg-accent/10 group-hover:bg-accent/20 transition-colors">
-                    <BookOpen className="w-5 h-5 text-accent" />
-                  </div>
-                </motion.button>
-              </motion.div>
+            {/* Recently Read — Horizontal scroll row (#13) */}
+            {!isLoading && activeFilter === 'all' && !searchQuery && (
+              <RecentlyRead
+                books={books}
+                progressData={progressMap}
+                onBookClick={handleBookClick}
+              />
             )}
 
             {/* Error State */}
@@ -478,62 +460,112 @@ export default function Home() {
               </motion.div>
             )}
 
-            {/* Loading Skeleton - Premium Book Shape with Shimmer */}
+            {/* Loading Skeleton — Refined card-matching shimmer (#16) */}
             {isLoading && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8">
                 {[...Array(12)].map((_, i) => (
-                  <div key={i} className="animate-pulse">
-                    {/* Book Cover Skeleton with Shimmer */}
-                    <div className="relative aspect-[2/3] bg-card rounded-lg overflow-hidden">
+                  <div key={i} className="group">
+                    {/* Cover Skeleton — Apple book shape */}
+                    <div className="relative book-cover rounded-[4px_8px_8px_4px] overflow-hidden bg-card"
+                      style={{ boxShadow: '0 6px 20px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}
+                    >
                       <div
-                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                        className="absolute inset-0"
                         style={{
-                          animation: 'shimmer 2s infinite',
-                          transform: 'translateX(-100%)',
+                          background: 'linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.04) 50%, transparent 70%)',
+                          animation: `shimmer 1.8s infinite ${i * 0.08}s`,
                         }}
                       />
+                      {/* Spine accent */}
+                      <div className="absolute left-0 top-0 bottom-0 w-3" style={{ background: 'linear-gradient(90deg, rgba(0,0,0,0.25), transparent)' }} />
                     </div>
-                    {/* Text Skeleton */}
-                    <div className="mt-3 space-y-2">
-                      <div className="h-4 bg-card rounded w-3/4" />
-                      <div className="h-3 bg-card rounded w-1/2" />
+                    {/* Title line */}
+                    <div className="mt-3 space-y-1.5 px-0.5">
+                      <div className="h-3 rounded-md w-4/5" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                        <div
+                          className="h-full rounded-md"
+                          style={{
+                            background: 'linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.03) 50%, transparent 70%)',
+                            animation: `shimmer 1.8s infinite ${i * 0.08 + 0.1}s`,
+                          }}
+                        />
+                      </div>
+                      {/* Author line */}
+                      <div className="h-2.5 rounded-md w-3/5" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                        <div
+                          className="h-full rounded-md"
+                          style={{
+                            background: 'linear-gradient(90deg, transparent 30%, rgba(255,255,255,0.03) 50%, transparent 70%)',
+                            animation: `shimmer 1.8s infinite ${i * 0.08 + 0.2}s`,
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Empty State */}
+            {/* Empty State — SVG illustrations (#17) */}
             {!isLoading && !error && books.length === 0 && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex flex-col items-center justify-center py-20 text-center"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center justify-center py-16 text-center"
               >
-                <div className="w-20 h-20 mb-6 rounded-full bg-card flex items-center justify-center">
-                  <Plus className="w-10 h-10 text-muted" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">No books yet</h3>
+                <EmptyLibraryIllustration className="w-56 h-44 text-muted mb-6" />
+                <h3 className="text-xl font-semibold mb-2">No books available</h3>
                 <p className="text-muted mb-6 max-w-sm">
-                  Upload your first book to get started. We support EPUB, Markdown, and PDF files.
+                  There are no books in the library yet.
                 </p>
-                <button
-                  onClick={handleUploadClick}
-                  className="px-6 py-3 bg-accent hover:bg-accent/90 text-white rounded-xl font-medium transition-colors"
-                >
-                  Upload a Book
-                </button>
+              </motion.div>
+            )}
+
+            {/* No search results empty state */}
+            {!isLoading && !error && books.length > 0 && filteredBooks.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center justify-center py-16 text-center"
+              >
+                {activeCollectionId ? (
+                  <>
+                    <EmptyCollectionIllustration className="w-56 h-44 text-muted mb-6" />
+                    <h3 className="text-xl font-semibold mb-2">Empty collection</h3>
+                    <p className="text-muted mb-6 max-w-sm">
+                      Add books to this collection from the book card menu.
+                    </p>
+                  </>
+                ) : searchQuery ? (
+                  <>
+                    <NoResultsIllustration className="w-56 h-44 text-muted mb-6" />
+                    <h3 className="text-xl font-semibold mb-2">No results found</h3>
+                    <p className="text-muted max-w-sm">
+                      Try a different search term or check your filters.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <NoResultsIllustration className="w-56 h-44 text-muted mb-6" />
+                    <h3 className="text-xl font-semibold mb-2">No books match this filter</h3>
+                    <p className="text-muted max-w-sm">
+                      Try selecting a different category.
+                    </p>
+                  </>
+                )}
               </motion.div>
             )}
 
             {/* Library Grid */}
             {!isLoading && !error && books.length > 0 && (
-              viewMode === 'grid' ? (
+              <ErrorBoundary section="library grid">
+              {viewMode === 'grid' ? (
                 <LibraryGrid
                   books={filteredBooks}
                   onBookClick={handleBookClick}
-                  onDeleteClick={handleDeleteClick}
-                  onEditClick={handleEditClick}
+                  onDeleteClick={isAdmin ? (book) => setBookToDelete(book) : undefined}
+                  onEditClick={isAdmin ? (book) => setBookToEdit(book) : undefined}
+                  onAddToCollection={(book) => setBookToAddToCollection(book)}
                 />
               ) : (
                 <div className="space-y-2">
@@ -574,63 +606,101 @@ export default function Home() {
                         ) : (
                           <span className="text-muted">{book.progress > 0 ? `${Math.round(book.progress)}%` : 'Unread'}</span>
                         )}
-                      </div>
-                      {/* Edit button for MD files */}
-                      {book.formatType === 'md' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditClick(book);
-                          }}
-                          className="p-2 text-muted hover:text-accent hover:bg-white/10 rounded-lg transition-all"
-                          title="Edit Book"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
-                        </button>
-                      )}
+                    </div>
                     </motion.div>
                   ))}
                 </div>
-              )
+              )}
+              </ErrorBoundary>
             )}
           </motion.div>
         </main>
       </div>
 
-      {/* Upload Modal */}
+      {/* Collection Manager Modal (#14) */}
       <AnimatePresence>
-        {showUploadModal && (
-          <UploadModal
-            onClose={() => setShowUploadModal(false)}
-            onUploadComplete={handleUploadComplete}
+        {showCollectionManager && (
+          <CollectionManagerModal
+            collections={collections}
+            onClose={() => setShowCollectionManager(false)}
+            onCreate={createCollection}
+            onDelete={deleteCollection}
+            onRename={renameCollection}
           />
         )}
       </AnimatePresence>
 
-      {/* Delete Confirmation Modal */}
+      {/* Add to Collection Modal (#14) */}
       <AnimatePresence>
-        {bookToDelete && (
-          <DeleteBookModal
-            bookTitle={bookToDelete.title}
-            bookAuthor={bookToDelete.author}
-            chapterCount={bookToDelete.chapterCount}
-            onConfirm={handleConfirmDelete}
-            onCancel={() => setBookToDelete(null)}
-            isDeleting={isDeleting}
+        {bookToAddToCollection && (
+          <AddToCollectionModal
+            bookTitle={bookToAddToCollection.title}
+            bookId={bookToAddToCollection.id}
+            collections={collections}
+            onClose={() => setBookToAddToCollection(null)}
+            onAdd={(colId) => addBookToCollection(colId, bookToAddToCollection.id)}
+            onRemove={(colId) => removeBookFromCollection(colId, bookToAddToCollection.id)}
           />
         )}
       </AnimatePresence>
 
-      {/* Edit Book Modal (MD only) */}
-      <AnimatePresence>
-        {bookToEdit && (
-          <EditMdBookModal
-            book={bookToEdit}
-            onClose={() => setBookToEdit(null)}
-            onEditComplete={handleEditComplete}
-          />
-        )}
-      </AnimatePresence>
+      {/* ===== Admin-Only CRUD UI ===== */}
+      {isAdmin && (
+        <>
+          {/* Floating Upload Button */}
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.5, type: 'spring', stiffness: 200 }}
+            onClick={() => setShowUploadModal(true)}
+            className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-[#FF9F0A] to-[#FF6B00] text-white shadow-lg shadow-[#FF9F0A]/30 hover:shadow-[#FF9F0A]/50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
+            title="Upload Book"
+          >
+            <Plus className="w-7 h-7" />
+          </motion.button>
+
+          {/* Upload Modal */}
+          <AnimatePresence>
+            {showUploadModal && (
+              <UploadModal
+                onClose={() => setShowUploadModal(false)}
+                onUploadComplete={() => {
+                  setShowUploadModal(false);
+                  loadBooks();
+                }}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Delete Book Modal */}
+          <AnimatePresence>
+            {bookToDelete && (
+              <DeleteBookModal
+                bookTitle={bookToDelete.title}
+                bookAuthor={bookToDelete.author}
+                chapterCount={bookToDelete.chapterCount}
+                onConfirm={handleConfirmDelete}
+                onCancel={() => setBookToDelete(null)}
+                isDeleting={isDeleting}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Edit Markdown Book Modal */}
+          <AnimatePresence>
+            {bookToEdit && (
+              <EditMdBookModal
+                book={bookToEdit}
+                onClose={() => setBookToEdit(null)}
+                onEditComplete={() => {
+                  setBookToEdit(null);
+                  loadBooks();
+                }}
+              />
+            )}
+          </AnimatePresence>
+        </>
+      )}
 
     </div>
   );
