@@ -23,7 +23,7 @@ beforeEach(() => {
 
 const BOOK_ID = 'book-123';
 const USER_ID = 'user-456';
-const LOCAL_KEY = `applebook-progress-${BOOK_ID}`;
+const LOCAL_KEY = `sarpay-progress-${BOOK_ID}`;
 
 describe('useReadingProgressSync', () => {
   // ─── Loading from Supabase ──────────────────────────────

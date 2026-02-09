@@ -3,7 +3,7 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-/* Apple Books Library - Deep Dark Theme */
+/* Sarpay Library - Deep Dark Theme */
 :root {
   /* Deep dark theme (primary) */
   --background: #09090b;
@@ -122,10 +122,10 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* ===== APPLE BOOKS CARD SYSTEM ===== */
+/* ===== SARPAY CARD SYSTEM ===== */
 
 /* Outer card wrapper — perspective for 3D tilt */
-.book-card-apple {
+.book-card-sarpay {
   position: relative;
   perspective: 900px;
 }
@@ -197,7 +197,7 @@ body {
 }
 
 /* Hover: subtle lift + rotate for 3D peek */
-.book-card-apple:hover .book-body {
+.book-card-sarpay:hover .book-body {
   transform: rotateY(-4deg) translateY(-8px);
   box-shadow:
     8px 16px 40px rgba(0, 0, 0, 0.5),
@@ -230,11 +230,11 @@ body {
   transition: opacity 0.3s ease;
 }
 
-.book-card-apple:hover .book-cover-highlight {
+.book-card-sarpay:hover .book-cover-highlight {
   opacity: 1;
 }
 
-/* Progress dot indicator — Apple style */
+/* Progress dot indicator — Sarpay style */
 .progress-dot {
   width: 6px;
   height: 6px;

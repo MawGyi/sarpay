@@ -1,7 +1,7 @@
 {
-  "name": "AppleBook",
-  "short_name": "AppleBook",
-  "description": "A premium, Apple Books-inspired e-book reader and library management app.",
+  "name": "Sarpay",
+  "short_name": "Sarpay",
+  "description": "A premium e-book reader and library management app.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#09090b",

@@ -19,7 +19,7 @@ interface BookCardProps {
 import { Trash2, Pencil, FolderPlus } from 'lucide-react';
 
 export function BookCard({ book, index, onClick, onDelete, onEdit, onAddToCollection }: BookCardProps) {
-  // Refined Apple-style gradient fallback colors — warm, muted tones
+  // Refined Sarpay-style gradient fallback colors — warm, muted tones
   const gradientColors = [
     'from-amber-700 to-orange-900',
     'from-emerald-700 to-teal-900',
@@ -41,7 +41,7 @@ export function BookCard({ book, index, onClick, onDelete, onEdit, onAddToCollec
         ease: [0.22, 1, 0.36, 1],
       }}
       onClick={() => onClick?.(book)}
-      className="book-card-apple cursor-pointer group"
+      className="book-card-sarpay cursor-pointer group"
       role="listitem"
       aria-label={`${book.title} by ${book.author}`}
       tabIndex={0}
@@ -136,7 +136,7 @@ export function BookCard({ book, index, onClick, onDelete, onEdit, onAddToCollec
         </h3>
         <p className="text-[11px] text-muted/70 mt-0.5 line-clamp-1">{book.author}</p>
 
-        {/* Progress indicator — Apple style */}
+        {/* Progress indicator — Sarpay style */}
         {book.formatType === 'epub' && (
           <div className="mt-1.5">
             {book.progress > 0 && book.progress < 100 ? (

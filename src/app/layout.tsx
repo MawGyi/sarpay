@@ -17,13 +17,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AppleBook — Your Personal Library",
-  description: "A premium, Apple Books-inspired e-book reader and library management app.",
+  title: "Sarpay — Your Personal Library",
+  description: "A premium e-book reader and library management app.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "AppleBook",
+    title: "Sarpay",
   },
 };
 

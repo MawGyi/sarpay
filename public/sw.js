@@ -1,7 +1,7 @@
-// Service Worker for AppleBook PWA
+// Service Worker for Sarpay PWA
 // Provides offline caching for app shell and static assets
 
-const CACHE_NAME = 'applebook-v1';
+const CACHE_NAME = 'sarpay-v1';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

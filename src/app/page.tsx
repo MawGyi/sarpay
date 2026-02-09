@@ -465,7 +465,7 @@ export default function Home() {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8">
                 {[...Array(12)].map((_, i) => (
                   <div key={i} className="group">
-                    {/* Cover Skeleton — Apple book shape */}
+                    {/* Cover Skeleton — Sarpay book shape */}
                     <div className="relative book-cover rounded-[4px_8px_8px_4px] overflow-hidden bg-card"
                       style={{ boxShadow: '0 6px 20px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.3)' }}
                     >

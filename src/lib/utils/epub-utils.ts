@@ -1,5 +1,5 @@
 /**
- * EPUB Utilities for Apple Books Style Reader
+ * EPUB Utilities for Sarpay Style Reader
  * 
  * Provides functions for parsing EPUB files, extracting metadata,
  * and handling cover images with CSS-based fallbacks.

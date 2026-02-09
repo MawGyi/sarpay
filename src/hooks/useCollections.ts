@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { Collection } from '@/types/database';
 
-const COLLECTIONS_KEY = 'applebook_collections';
+const COLLECTIONS_KEY = 'sarpay_collections';
 
 function loadCollections(): Collection[] {
   if (typeof window === 'undefined') return [];

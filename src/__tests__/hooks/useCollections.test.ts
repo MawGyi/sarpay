@@ -8,7 +8,7 @@ beforeEach(() => {
   (localStorage.setItem as ReturnType<typeof vi.fn>).mockClear();
 });
 
-const COLLECTIONS_KEY = 'applebook_collections';
+const COLLECTIONS_KEY = 'sarpay_collections';
 
 describe('useCollections', () => {
   // ─── Create ──────────────────────────────────────────────

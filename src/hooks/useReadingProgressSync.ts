@@ -29,7 +29,7 @@ export function useReadingProgressSync(bookId: string, userId?: string) {
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
     // Local storage key for offline fallback
-    const localStorageKey = `applebook-progress-${bookId}`;
+    const localStorageKey = `sarpay-progress-${bookId}`;
 
     // Load progress on mount
     useEffect(() => {

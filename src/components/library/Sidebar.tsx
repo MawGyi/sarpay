@@ -316,7 +316,7 @@ export function Sidebar({
           {/* Footer */}
           <div className="px-5 pb-5 pt-1">
             <p className="text-[10px] text-white/20 text-center">
-              Apple Books Style
+              Sarpay
             </p>
           </div>
         </div>

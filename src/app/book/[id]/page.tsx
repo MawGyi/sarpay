@@ -19,11 +19,11 @@ export async function generateMetadata({ params }: BookPageProps): Promise<Metad
   try {
     const book = await fetchBookServer(id);
     if (!book) {
-      return { title: 'Book Not Found — AppleBook' };
+      return { title: 'Book Not Found — Sarpay' };
     }
 
     return {
-      title: `${book.title} — AppleBook`,
+      title: `${book.title} — Sarpay`,
       description: book.description
         ? book.description.replace(/<[^>]*>/g, '').slice(0, 160)
         : `Read ${book.title} by ${book.author}`,
@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: BookPageProps): Promise<Metad
       },
     };
   } catch {
-    return { title: 'AppleBook' };
+    return { title: 'Sarpay' };
   }
 }
 

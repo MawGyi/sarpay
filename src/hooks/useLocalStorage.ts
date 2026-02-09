@@ -121,7 +121,7 @@ export interface BookProgressStore {
  */
 export function useReadingProgress(bookId: string) {
     const [allProgress, setAllProgress, clearAllProgress] = useLocalStorage<BookProgressStore>(
-        'applebook-reading-progress',
+        'sarpay-reading-progress',
         {}
     );
 
@@ -191,7 +191,7 @@ const defaultPreferences: ReaderPreferences = {
 
 export function useReaderPreferences() {
     const [preferences, setPreferences] = useLocalStorage<ReaderPreferences>(
-        'applebook-reader-preferences',
+        'sarpay-reader-preferences',
         defaultPreferences
     );
 
