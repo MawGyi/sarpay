@@ -211,7 +211,7 @@ export default function EpubReader({ url, bookId, title, onClose }: EpubReaderPr
       setIsLoading(false);
 
       // Calculate progress
-      if (book.locations.length()) {
+      if (book.locations.length() && location?.start?.cfi) {
         try {
           const percentage = book.locations.percentageFromCfi(location.start.cfi);
           // percentageFromCfi can return a value outside 0-1 range sometimes, clamp it
